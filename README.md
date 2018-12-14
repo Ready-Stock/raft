@@ -1,4 +1,4 @@
-raft [![Build Status](https://travis-ci.org/hashicorp/raft.png)](https://travis-ci.org/hashicorp/raft)
+raft [![Build Status](https://travis-ci.com/readystock/raft.svg?branch=master)](https://travis-ci.com/readystock/raft)
 ====
 
 This is a branch of Hashicrop's raft implementation.
