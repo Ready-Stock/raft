@@ -1,4 +1,4 @@
-raft [![Build Status](https://travis-ci.org/hashicorp/raft.png)](https://travis-ci.org/hashicorp/raft)
+raft [![Build Status](https://travis-ci.com/readystock/raft.svg?branch=feature/grpc)](https://travis-ci.com/readystock/raft)
 ====
 
 raft is a [Go](http://www.golang.org) library that manages a replicated
