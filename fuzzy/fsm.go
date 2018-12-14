@@ -8,7 +8,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/hashicorp/raft"
+	"github.com/readystock/raft"
 )
 
 type logHash struct {

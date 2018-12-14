@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/hashicorp/raft"
+	"github.com/readystock/raft"
 )
 
 // AppendEntriesVerifier looks at all the AppendEntry RPC request and verifies that only one node sends AE requests for any given term

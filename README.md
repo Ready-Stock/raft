@@ -22,14 +22,14 @@ go version
 
 ## Documentation
 
-For complete documentation, see the associated [Godoc](http://godoc.org/github.com/hashicorp/raft).
+For complete documentation, see the associated [Godoc](http://godoc.org/github.com/readystock/raft).
 
 To prevent complications with cgo, the primary backend `MDBStore` is in a separate repository,
-called [raft-mdb](http://github.com/hashicorp/raft-mdb). That is the recommended implementation
+called [raft-mdb](http://github.com/readystock/raft-mdb). That is the recommended implementation
 for the `LogStore` and `StableStore`.
 
 A pure Go backend using [BoltDB](https://github.com/boltdb/bolt) is also available called
-[raft-boltdb](https://github.com/hashicorp/raft-boltdb). It can also be used as a `LogStore`
+[raft-boltdb](https://github.com/readystock/raft-boltdb). It can also be used as a `LogStore`
 and `StableStore`.
 
 ## Tagged Releases

@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/hashicorp/raft"
 	rdb "github.com/hashicorp/raft-boltdb"
+	"github.com/readystock/raft"
 )
 
 type raftNode struct {

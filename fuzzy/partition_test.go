@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/raft"
+	"github.com/readystock/raft"
 )
 
 // 5 node cluster where the leader and another node get regularly partitioned off

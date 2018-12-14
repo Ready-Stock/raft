@@ -14,7 +14,7 @@ deps:
 	echo $(DEPS) | xargs -n1 go get -d
 
 cov:
-	INTEG_TESTS=yes gocov test github.com/hashicorp/raft | gocov-html > /tmp/coverage.html
+	INTEG_TESTS=yes gocov test github.com/readystock/raft | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
 .PHONY: test cov integ deps
