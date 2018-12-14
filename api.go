@@ -199,7 +199,7 @@ func BootstrapCluster(conf *Config, logs LogStore, stable StableStore,
 		Term:  1,
 	}
 	if conf.ProtocolVersion < 3 {
-		entry.Type = LogRemovePeerDeprecated
+		entry.Type = LogType_RemovePeerDeprecated // LogRemovePeerDeprecated
 		entry.Data = encodePeers(configuration, trans)
 	} else {
 		entry.Type = LogConfiguration
@@ -437,17 +437,17 @@ func NewRaft(conf *Config, fsm FSM, logs LogStore, stable StableStore, snaps Sna
 
 	// Create Raft struct.
 	r := &Raft{
-		protocolVersion: protocolVersion,
-		applyCh:         make(chan *logFuture),
-		conf:            *conf,
-		fsm:             fsm,
-		fsmMutateCh:     make(chan interface{}, 128),
-		fsmSnapshotCh:   make(chan *reqSnapshotFuture),
-		leaderCh:        make(chan bool),
-		localID:         localID,
-		localAddr:       localAddr,
-		logger:          logger,
-		logs:            logs,
+		protocolVersion:       protocolVersion,
+		applyCh:               make(chan *logFuture),
+		conf:                  *conf,
+		fsm:                   fsm,
+		fsmMutateCh:           make(chan interface{}, 128),
+		fsmSnapshotCh:         make(chan *reqSnapshotFuture),
+		leaderCh:              make(chan bool),
+		localID:               localID,
+		localAddr:             localAddr,
+		logger:                logger,
+		logs:                  logs,
 		configurationChangeCh: make(chan *configurationChangeFuture),
 		configurations:        configurations{},
 		rpcCh:                 trans.Consumer(),
@@ -947,10 +947,10 @@ func (r *Raft) Stats() map[string]string {
 		"last_snapshot_index":  toString(lastSnapIndex),
 		"last_snapshot_term":   toString(lastSnapTerm),
 		"protocol_version":     toString(uint64(r.protocolVersion)),
-		"protocol_version_min": toString(uint64(ProtocolVersionMin)),
-		"protocol_version_max": toString(uint64(ProtocolVersionMax)),
-		"snapshot_version_min": toString(uint64(SnapshotVersionMin)),
-		"snapshot_version_max": toString(uint64(SnapshotVersionMax)),
+		"protocol_version_min": toString(uint64(ProtocolVersion_ProtocolVersionMin)),
+		"protocol_version_max": toString(uint64(ProtocolVersion_ProtocolVersionMax)),
+		"snapshot_version_min": toString(uint64(ProtocolVersion_ProtocolVersionMin)),
+		"snapshot_version_max": toString(uint64(ProtocolVersion_ProtocolVersionMax)),
 	}
 
 	future := r.GetConfiguration()

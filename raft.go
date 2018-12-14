@@ -24,8 +24,8 @@ var (
 // getRPCHeader returns an initialized RPCHeader struct for the given
 // Raft instance. This structure is sent along with RPC requests and
 // responses.
-func (r *Raft) getRPCHeader() RPCHeader {
-	return RPCHeader{
+func (r *Raft) getRPCHeader() *RPCHeader {
+	return &RPCHeader{
 		ProtocolVersion: r.conf.ProtocolVersion,
 	}
 }
@@ -42,8 +42,8 @@ func (r *Raft) checkRPCHeader(rpc RPC) error {
 
 	// First check is to just make sure the code can understand the
 	// protocol at all.
-	if header.ProtocolVersion < ProtocolVersionMin ||
-		header.ProtocolVersion > ProtocolVersionMax {
+	if header.ProtocolVersion < ProtocolVersion_ProtocolVersionMin ||
+		header.ProtocolVersion > ProtocolVersion_ProtocolVersionMax {
 		return ErrUnsupportedProtocol
 	}
 
@@ -717,7 +717,7 @@ func (r *Raft) restoreUserSnapshot(meta *SnapshotMeta, reader io.Reader) error {
 
 	// Sanity check the version.
 	version := meta.Version
-	if version < SnapshotVersionMin || version > SnapshotVersionMax {
+	if version < SnapshotVersion_SnapshotVersionMin || version > SnapshotVersion_SnapshotVersionMax {
 		return fmt.Errorf("unsupported snapshot version %d", version)
 	}
 
@@ -1255,8 +1255,8 @@ func (r *Raft) installSnapshot(rpc RPC, req *InstallSnapshotRequest) {
 	}()
 
 	// Sanity check the version
-	if req.SnapshotVersion < SnapshotVersionMin ||
-		req.SnapshotVersion > SnapshotVersionMax {
+	if req.SnapshotVersion < SnapshotVersion_SnapshotVersionMin ||
+		req.SnapshotVersion > SnapshotVersion_SnapshotVersionMax {
 		rpcErr = fmt.Errorf("unsupported snapshot version %d", req.SnapshotVersion)
 		return
 	}

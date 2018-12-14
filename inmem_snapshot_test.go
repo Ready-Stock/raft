@@ -41,7 +41,7 @@ func TestInmemSS_CreateSnapshot(t *testing.T) {
 		Address:  ServerAddress("over here"),
 	})
 	_, trans := NewInmemTransport(NewInmemAddr())
-	sink, err := snap.Create(SnapshotVersionMax, 10, 3, configuration, 2, trans)
+	sink, err := snap.Create(SnapshotVersion_SnapshotVersionMax, 10, 3, configuration, 2, trans)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

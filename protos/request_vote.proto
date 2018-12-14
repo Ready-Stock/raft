@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package raft;
+
+import "rpc_header.proto";
+
+message RequestVoteRequest {
+    // Required field on all requests.
+    RPCHeader RPCHeader = 1;
+
+    // Provide the term and our id
+    uint64 Term = 2;
+    bytes Candidate = 3;
+
+    // Used to ensure safety
+    uint64 LastLogIndex = 4;
+    uint64 LastLogTerm = 5;
+}
+
+message RequestVoteResponse {
+    // Required field on all requests.
+    RPCHeader RPCHeader = 1;
+
+    // Newer term if leader is out of date.
+    uint64 Term = 2;
+
+    // Peers is deprecated, but required by servers that only understand
+    // protocol version 0. This is not populated in protocol version 2
+    // and later.
+    bytes Peers = 3;
+
+    // Is the vote granted.
+    bool Granted = 4;
+}

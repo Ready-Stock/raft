@@ -1,0 +1,14 @@
+syntax = "proto3";
+
+package raft;
+
+enum ProtocolVersion {
+    ProtocolVersionMin = 0;
+    ProtocolVersionOne = 1;
+    ProtocolVersionTwo = 2;
+    ProtocolVersionMax = 3;
+}
+
+message RPCHeader {
+    ProtocolVersion ProtocolVersion = 1;
+}

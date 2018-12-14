@@ -2294,8 +2294,8 @@ func TestRaft_ProtocolVersion_RejectRPC(t *testing.T) {
 	ldrT := c.trans[c.IndexOf(ldr)]
 
 	reqVote := RequestVoteRequest{
-		RPCHeader: RPCHeader{
-			ProtocolVersion: ProtocolVersionMax + 1,
+		RPCHeader: &RPCHeader{
+			ProtocolVersion: ProtocolVersion_ProtocolVersionMax + 1,
 		},
 		Term:         ldr.getCurrentTerm() + 10,
 		Candidate:    ldrT.EncodePeer(ldr.localID, ldr.localAddr),

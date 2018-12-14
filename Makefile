@@ -17,4 +17,14 @@ cov:
 	INTEG_TESTS=yes gocov test github.com/readystock/raft | gocov-html > /tmp/coverage.html
 	open /tmp/coverage.html
 
-.PHONY: test cov integ deps
+
+PROTOS_DIRECTORY = ./protos
+
+protos:
+	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/log.proto
+	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/rpc_header.proto
+	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/append_entries.proto
+	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/request_vote.proto
+	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/install_snapshot.proto
+
+.PHONY: test cov integ deps protos

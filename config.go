@@ -83,12 +83,12 @@ import (
 //    this protocol version, along with their server ID. The remove/add cycle
 //    is required to populate their server ID. Note that removing must be done
 //    by ID, which will be the old server's address.
-type ProtocolVersion int
-
-const (
-	ProtocolVersionMin ProtocolVersion = 0
-	ProtocolVersionMax                 = 3
-)
+// type ProtocolVersion int
+//
+// const (
+// 	ProtocolVersionMin ProtocolVersion = 0
+// 	ProtocolVersionMax                 = 3
+// )
 
 // These are versions of snapshots that this server can _understand_. Currently,
 // it is always assumed that this server generates the latest version, though
@@ -107,12 +107,12 @@ const (
 //    Since the original Raft library didn't enforce any versioning, we must
 //    include the legacy peers structure for this version, but we can deprecate
 //    it in the next snapshot version.
-type SnapshotVersion int
-
-const (
-	SnapshotVersionMin SnapshotVersion = 0
-	SnapshotVersionMax                 = 1
-)
+// type SnapshotVersion int
+//
+// const (
+// 	SnapshotVersionMin SnapshotVersion = 0
+// 	SnapshotVersionMax                 = 1
+// )
 
 // Config provides any necessary configuration for the Raft server.
 type Config struct {
@@ -198,7 +198,7 @@ type Config struct {
 // DefaultConfig returns a Config with usable defaults.
 func DefaultConfig() *Config {
 	return &Config{
-		ProtocolVersion:    ProtocolVersionMax,
+		ProtocolVersion:    ProtocolVersion_ProtocolVersionMax,
 		HeartbeatTimeout:   1000 * time.Millisecond,
 		ElectionTimeout:    1000 * time.Millisecond,
 		CommitTimeout:      50 * time.Millisecond,
@@ -215,14 +215,14 @@ func DefaultConfig() *Config {
 func ValidateConfig(config *Config) error {
 	// We don't actually support running as 0 in the library any more, but
 	// we do understand it.
-	protocolMin := ProtocolVersionMin
+	protocolMin := ProtocolVersion_ProtocolVersionMin
 	if protocolMin == 0 {
 		protocolMin = 1
 	}
 	if config.ProtocolVersion < protocolMin ||
-		config.ProtocolVersion > ProtocolVersionMax {
+		config.ProtocolVersion > ProtocolVersion_ProtocolVersionMax {
 		return fmt.Errorf("Protocol version %d must be >= %d and <= %d",
-			config.ProtocolVersion, protocolMin, ProtocolVersionMax)
+			config.ProtocolVersion, protocolMin, ProtocolVersion_ProtocolVersionMax)
 	}
 	if len(config.LocalID) == 0 {
 		return fmt.Errorf("LocalID cannot be empty")

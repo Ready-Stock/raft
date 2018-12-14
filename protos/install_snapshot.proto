@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package raft;
+
+import "rpc_header.proto";
+
+enum SnapshotVersion {
+    SnapshotVersionMin = 0;
+    SnapshotVersionMax = 1;
+}
+
+message InstallSnapshotRequest {
+    // Required field on all requests.
+    RPCHeader RPCHeader = 1;
+
+    SnapshotVersion SnapshotVersion = 2;
+
+    uint64 Term = 3;
+
+    bytes Leader = 4;
+
+    // These are the last index/term included in the snapshot
+    uint64 LastLogIndex = 5;
+    uint64 LastLogTerm = 6;
+
+    // Peer Set in the snapshot. This is deprecated in favor of Configuration
+    // but remains here in case we receive an InstallSnapshot from a leader
+    // that's running old code.
+    bytes Peers = 7;
+
+    // Cluster membership.
+    bytes Configuration = 8;
+
+    // Log index where 'Configuration' entry was originally written.
+    uint64 ConfigurationIndex = 9;
+
+    // Size of the snapshot
+    int64 Size = 10;
+}
+
+message InstallSnapshotResponse {
+    // Required field on all requests.
+    RPCHeader RPCHeader = 1;
+
+    uint64 Term = 2;
+
+    bool Success = 3;
+}

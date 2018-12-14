@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package raft;
+
+import "log.proto";
+import "rpc_header.proto";
+
+message AppendEntriesRequest {
+    // Required field on all requests.
+    RPCHeader RPCHeader = 1;
+
+    // Provide the current term and leader
+    uint64 Term = 2;
+    bytes Leader = 3;
+
+    // Provide the previous entries for integrity checking
+    uint64 PrevLogEntry = 4;
+    uint64 PrevLogTerm = 5;
+
+    // New entries to commit
+    repeated Log Entries = 6;
+
+    // Commit index on the leader
+    uint64 LeaderCommitIndex = 7;
+}
+
+message AppendEntriesResponse {
+    // Required field on all requests.
+    RPCHeader RPCHeader = 1;
+
+    // Newer term if leader is out of date
+    uint64 Term = 2;
+
+    // Last log is a hint to help accelerate rebuilding slow nodes
+    uint64 LastLog = 3;
+
+    // We may not succeed if we have a conflicting entry
+    bool Success = 4;
+
+    // There are scenarios where this request didn't succeed
+    // but there's no need to wait/back-off the next attempt.
+    bool NoRetryBackoff = 5;
+}

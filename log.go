@@ -1,7 +1,7 @@
 package raft
 
 // LogType describes various types of log entries.
-type LogType uint8
+// type LogType uint8
 
 const (
 	// LogCommand is applied to a user FSM.
@@ -35,19 +35,19 @@ const (
 
 // Log entries are replicated to all members of the Raft cluster
 // and form the heart of the replicated state machine.
-type Log struct {
-	// Index holds the index of the log entry.
-	Index uint64
-
-	// Term holds the election term of the log entry.
-	Term uint64
-
-	// Type holds the type of the log entry.
-	Type LogType
-
-	// Data holds the log entry's type-specific data.
-	Data []byte
-}
+// type Log struct {
+// 	// Index holds the index of the log entry.
+// 	Index uint64
+//
+// 	// Term holds the election term of the log entry.
+// 	Term uint64
+//
+// 	// Type holds the type of the log entry.
+// 	Type LogType
+//
+// 	// Data holds the log entry's type-specific data.
+// 	Data []byte
+// }
 
 // LogStore is used to provide an interface for storing
 // and retrieving logs in a durable fashion.

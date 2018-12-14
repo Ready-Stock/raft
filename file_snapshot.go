@@ -255,7 +255,7 @@ func (f *FileSnapshotStore) getSnapshots() ([]*fileSnapshotMeta, error) {
 		}
 
 		// Make sure we can understand this version.
-		if meta.Version < SnapshotVersionMin || meta.Version > SnapshotVersionMax {
+		if meta.Version < SnapshotVersion_SnapshotVersionMin || meta.Version > SnapshotVersion_SnapshotVersionMax {
 			f.logger.Printf("[WARN] snapshot: Snapshot version for %v not supported: %d", dirName, meta.Version)
 			continue
 		}
