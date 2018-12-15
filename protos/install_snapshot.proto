@@ -11,7 +11,7 @@ enum SnapshotVersion {
 
 message InstallSnapshotRequest {
     // Required field on all requests.
-    RPCHeader RPCHeader = 1;
+    RPCHeader Header = 1;
 
     SnapshotVersion SnapshotVersion = 2;
 
@@ -40,7 +40,7 @@ message InstallSnapshotRequest {
 
 message InstallSnapshotResponse {
     // Required field on all requests.
-    RPCHeader RPCHeader = 1;
+    RPCHeader Header = 1;
 
     uint64 Term = 2;
 

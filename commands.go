@@ -4,3 +4,15 @@ package raft
 type WithRPCHeader interface {
 	GetRPCHeader() *RPCHeader
 }
+
+func (r AppendEntriesRequest) GetRPCHeader() *RPCHeader {
+	return r.Header
+}
+
+func (r RequestVoteRequest) GetRPCHeader() *RPCHeader {
+	return r.Header
+}
+
+func (r InstallSnapshotRequest) GetRPCHeader() *RPCHeader {
+	return r.Header
+}

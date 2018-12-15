@@ -64,9 +64,8 @@ func TestGrpcTransport_CloseStreams(t *testing.T) {
 			select {
 			case rpc := <-rpcCh:
 				// Verify the command
-				req := rpc.Command.(AppendEntriesRequest)
-
-				if !proto.Equal(&req, &args) {
+				req := rpc.Command.(*AppendEntriesRequest)
+				if !proto.Equal(req, &args) {
 					t.Fatalf("command mismatch: %#v %#v", req, args)
 				}
 
@@ -162,8 +161,8 @@ func TestGrpcTransport_Heartbeat_FastPath(t *testing.T) {
 	invoked := false
 	fastPath := func(rpc RPC) {
 		// Verify the command
-		req := rpc.Command.(AppendEntriesRequest)
-		if !proto.Equal(&req, &args) {
+		req := rpc.Command.(*AppendEntriesRequest)
+		if !proto.Equal(req, &args) {
 			t.Fatalf("command mismatch: %#v %#v", req, args)
 		}
 
@@ -239,8 +238,8 @@ func TestGrpcTransport_AppendEntries(t *testing.T) {
 		select {
 		case rpc := <-rpcCh:
 			// Verify the command
-			req := rpc.Command.(AppendEntriesRequest)
-			if !proto.Equal(&req, &args) {
+			req := rpc.Command.(*AppendEntriesRequest)
+			if !proto.Equal(req, &args) {
 				t.Fatalf("command mismatch: %#v %#v", req, args)
 			}
 
@@ -378,8 +377,8 @@ func TestGrpcTransport_AppendEntriesPipeline(t *testing.T) {
 			select {
 			case rpc := <-rpcCh:
 				// Verify the command
-				req := rpc.Command.(AppendEntriesRequest)
-				if !proto.Equal(&req, &args) {
+				req := rpc.Command.(*AppendEntriesRequest)
+				if !proto.Equal(req, &args) {
 					t.Fatalf("command mismatch: %#v %#v", req, args)
 				}
 				rpc.Respond(&resp, nil)

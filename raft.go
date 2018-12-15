@@ -1001,7 +1001,7 @@ func (r *Raft) appendEntries(rpc RPC, a *AppendEntriesRequest) {
 	defer metrics.MeasureSince([]string{"raft", "rpc", "appendEntries"}, time.Now())
 	// Setup a response
 	resp := &AppendEntriesResponse{
-		RPCHeader:      r.getRPCHeader(),
+		Header:         r.getRPCHeader(),
 		Term:           r.getCurrentTerm(),
 		LastLog:        r.getLastIndex(),
 		Success:        false,
@@ -1150,13 +1150,13 @@ func (r *Raft) processConfigurationLogEntry(entry *Log) {
 // requestVote is invoked when we get an request vote RPC call.
 func (r *Raft) requestVote(rpc RPC, req *RequestVoteRequest) {
 	defer metrics.MeasureSince([]string{"raft", "rpc", "requestVote"}, time.Now())
-	r.observe(*req)
+	r.observe(req)
 
 	// Setup a response
 	resp := &RequestVoteResponse{
-		RPCHeader: r.getRPCHeader(),
-		Term:      r.getCurrentTerm(),
-		Granted:   false,
+		Header:  r.getRPCHeader(),
+		Term:    r.getCurrentTerm(),
+		Granted: false,
 	}
 	var rpcErr error
 	defer func() {
@@ -1388,7 +1388,7 @@ func (r *Raft) electSelf() <-chan *voteResult {
 	// Construct the request
 	lastIdx, lastTerm := r.getLastEntry()
 	req := &RequestVoteRequest{
-		RPCHeader:    r.getRPCHeader(),
+		Header:       r.getRPCHeader(),
 		Term:         r.getCurrentTerm(),
 		Candidate:    r.trans.EncodePeer(r.localID, r.localAddr),
 		LastLogIndex: lastIdx,
@@ -1422,9 +1422,9 @@ func (r *Raft) electSelf() <-chan *voteResult {
 				// Include our own vote
 				respCh <- &voteResult{
 					RequestVoteResponse: RequestVoteResponse{
-						RPCHeader: r.getRPCHeader(),
-						Term:      req.Term,
-						Granted:   true,
+						Header:  r.getRPCHeader(),
+						Term:    req.Term,
+						Granted: true,
 					},
 					voterID: r.localID,
 				}

@@ -92,6 +92,8 @@ type GrpcTransport struct {
 	shutdownChan chan struct{}
 	shutdownLock sync.Mutex
 
+	serverAddressProvider ServerAddressProvider
+
 	gRPC      *grpc.Server
 	svc       service
 	localAddr string
@@ -139,7 +141,9 @@ func (transport *GrpcTransport) AppendEntries(id ServerID, target ServerAddress,
 	result, err := transport.executeTransportClient(context.Background(), id, target, func(ctx context.Context, client RaftServiceClient) (result interface{}, err error) {
 		return client.AppendEntries(ctx, args)
 	})
-	*resp = *result.(*AppendEntriesResponse)
+	if err == nil {
+		*resp = *result.(*AppendEntriesResponse)
+	}
 	return err
 }
 
@@ -148,20 +152,24 @@ func (transport *GrpcTransport) RequestVote(id ServerID, target ServerAddress, a
 	result, err := transport.executeTransportClient(context.Background(), id, target, func(ctx context.Context, client RaftServiceClient) (result interface{}, err error) {
 		return client.RequestVote(ctx, args)
 	})
-	*resp = *result.(*RequestVoteResponse)
+	if err == nil {
+		*resp = *result.(*RequestVoteResponse)
+	}
 	return err
 }
 
 func (transport *GrpcTransport) InstallSnapshot(id ServerID, target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
+	golog.Debugf("[%s] sending install snapshot to %s", transport.LocalAddr(), target)
 	return nil
 }
 
 func (transport *GrpcTransport) EncodePeer(id ServerID, addr ServerAddress) []byte {
-	return nil
+	address := transport.getProviderAddressOrFallback(id, addr)
+	return []byte(address)
 }
 
 func (transport *GrpcTransport) DecodePeer(data []byte) ServerAddress {
-	return ""
+	return ServerAddress(data)
 }
 
 func (transport *GrpcTransport) SetHeartbeatHandler(cb func(rpc RPC)) {
@@ -180,6 +188,18 @@ func (transport *GrpcTransport) Close() error {
 		transport.shutdown = true
 	}
 	return nil
+}
+
+func (transport *GrpcTransport) getProviderAddressOrFallback(id ServerID, target ServerAddress) ServerAddress {
+	if transport.serverAddressProvider != nil {
+		serverAddressOverride, err := transport.serverAddressProvider.ServerAddr(id)
+		if err != nil {
+			golog.Warnf("[WARN] raft: Unable to get address for server id %v, using fallback address %v: %v", id, target, err)
+		} else {
+			return serverAddressOverride
+		}
+	}
+	return target
 }
 
 func (transport *GrpcTransport) executeTransportClient(
@@ -212,7 +232,7 @@ func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, 
 	// Decode the command
 	isHeartbeat := false
 
-	rpc.Command = *request
+	rpc.Command = request
 
 	// Check if this is a heartbeat
 	if request.Term != 0 && request.Leader != nil &&
@@ -292,5 +312,6 @@ func (transport *GrpcTransport) handleRequestVoteCommand(ctx context.Context, re
 }
 
 func (transport *GrpcTransport) handleInstallSnapshotCommand(ctx context.Context, request *InstallSnapshotRequest) (*InstallSnapshotResponse, error) {
+	golog.Infof("[%s] received install snapshot command", transport.LocalAddr())
 	return nil, nil
 }

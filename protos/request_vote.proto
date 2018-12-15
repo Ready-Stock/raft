@@ -6,7 +6,7 @@ import "rpc_header.proto";
 
 message RequestVoteRequest {
     // Required field on all requests.
-    RPCHeader RPCHeader = 1;
+    RPCHeader Header = 1;
 
     // Provide the term and our id
     uint64 Term = 2;
@@ -19,7 +19,7 @@ message RequestVoteRequest {
 
 message RequestVoteResponse {
     // Required field on all requests.
-    RPCHeader RPCHeader = 1;
+    RPCHeader Header = 1;
 
     // Newer term if leader is out of date.
     uint64 Term = 2;

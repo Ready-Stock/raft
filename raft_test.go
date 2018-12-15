@@ -2262,7 +2262,7 @@ func TestRaft_Voting(t *testing.T) {
 	ldrT := c.trans[c.IndexOf(ldr)]
 
 	reqVote := RequestVoteRequest{
-		RPCHeader:    ldr.getRPCHeader(),
+		Header:       ldr.getRPCHeader(),
 		Term:         ldr.getCurrentTerm() + 10,
 		Candidate:    ldrT.EncodePeer(ldr.localID, ldr.localAddr),
 		LastLogIndex: ldr.LastIndex(),
@@ -2294,7 +2294,7 @@ func TestRaft_ProtocolVersion_RejectRPC(t *testing.T) {
 	ldrT := c.trans[c.IndexOf(ldr)]
 
 	reqVote := RequestVoteRequest{
-		RPCHeader: &RPCHeader{
+		Header: &RPCHeader{
 			ProtocolVersion: ProtocolVersion_ProtocolVersionMax + 1,
 		},
 		Term:         ldr.getCurrentTerm() + 10,
@@ -2311,7 +2311,7 @@ func TestRaft_ProtocolVersion_RejectRPC(t *testing.T) {
 	}
 
 	// Reject a message that's too old.
-	reqVote.RPCHeader.ProtocolVersion = followers[0].protocolVersion - 2
+	reqVote.Header.ProtocolVersion = followers[0].protocolVersion - 2
 	err = ldrT.RequestVote(followers[0].localID, followers[0].localAddr, &reqVote, &resp)
 	if err == nil || !strings.Contains(err.Error(), "protocol version") {
 		c.FailNowf("[ERR] expected RPC to get rejected: %v", err)

@@ -282,7 +282,7 @@ func (r *Raft) sendLatestSnapshot(s *followerReplication) (bool, error) {
 
 	// Setup the request
 	req := InstallSnapshotRequest{
-		RPCHeader:          r.getRPCHeader(),
+		Header:             r.getRPCHeader(),
 		SnapshotVersion:    meta.Version,
 		Term:               s.currentTerm,
 		Leader:             r.trans.EncodePeer(r.localID, r.localAddr),
@@ -337,9 +337,9 @@ func (r *Raft) sendLatestSnapshot(s *followerReplication) (bool, error) {
 func (r *Raft) heartbeat(s *followerReplication, stopCh chan struct{}) {
 	var failures uint64
 	req := AppendEntriesRequest{
-		RPCHeader: r.getRPCHeader(),
-		Term:      s.currentTerm,
-		Leader:    r.trans.EncodePeer(r.localID, r.localAddr),
+		Header: r.getRPCHeader(),
+		Term:   s.currentTerm,
+		Leader: r.trans.EncodePeer(r.localID, r.localAddr),
 	}
 	var resp AppendEntriesResponse
 	for {
@@ -481,7 +481,7 @@ func (r *Raft) pipelineDecode(s *followerReplication, p AppendPipeline, stopCh, 
 
 // setupAppendEntries is used to setup an append entries request.
 func (r *Raft) setupAppendEntries(s *followerReplication, req *AppendEntriesRequest, nextIndex, lastIndex uint64) error {
-	req.RPCHeader = r.getRPCHeader()
+	req.Header = r.getRPCHeader()
 	req.Term = s.currentTerm
 	req.Leader = r.trans.EncodePeer(r.localID, r.localAddr)
 	req.LeaderCommitIndex = r.getCommitIndex()
