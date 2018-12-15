@@ -26,5 +26,6 @@ protos:
 	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/append_entries.proto
 	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/request_vote.proto
 	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/install_snapshot.proto
+	protoc -I=$(PROTOS_DIRECTORY) --go_out=plugins=grpc:./ $(PROTOS_DIRECTORY)/service.proto
 
 .PHONY: test cov integ deps protos

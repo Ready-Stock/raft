@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package raft;
+
+import "append_entries.proto";
+import "request_vote.proto";
+import "install_snapshot.proto";
+
+service RaftService {
+    rpc appendEntries (AppendEntriesRequest) returns (AppendEntriesResponse) {}
+    rpc requestVote (RequestVoteRequest) returns (RequestVoteResponse) {}
+    rpc installSnapshot (InstallSnapshotRequest) returns (InstallSnapshotResponse) {}
+}
