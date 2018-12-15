@@ -2,6 +2,7 @@ package raft
 
 import (
 	"context"
+	"github.com/kataras/golog"
 	"google.golang.org/grpc"
 	"io"
 	"sync"
@@ -44,6 +45,7 @@ func newGrpcTransport(server *grpc.Server, localAddr string) (*GrpcTransport, er
 		installSnapshot: transport.handleInstallSnapshotCommand,
 	}
 	RegisterRaftServiceServer(server, transport.svc)
+	golog.Infof("[%s] finished starting grpc transport", transport.LocalAddr())
 	return transport, nil
 }
 
@@ -61,6 +63,7 @@ func (transport *GrpcTransport) AppendEntriesPipeline(id ServerID, target Server
 }
 
 func (transport *GrpcTransport) AppendEntries(id ServerID, target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
+	golog.Debugf("[%s] sending append entries request to %s", transport.LocalAddr(), target)
 	result, err := transport.executeTransportClient(context.Background(), id, target, func(ctx context.Context, client RaftServiceClient) (result interface{}, err error) {
 		return client.AppendEntries(ctx, args)
 	})
@@ -126,6 +129,7 @@ func (transport *GrpcTransport) listen() {
 }
 
 func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, request *AppendEntriesRequest) (*AppendEntriesResponse, error) {
+	golog.Infof("[%s] received append entries command", transport.LocalAddr())
 	// Create the RPC object
 	respCh := make(chan RPCResponse, 1)
 	rpc := RPC{
@@ -151,6 +155,7 @@ func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, 
 		transport.heartbeatFnLock.Unlock()
 		if fn != nil {
 			fn(rpc)
+			golog.Debugf("[%s] append entries command is heartbeat", transport.LocalAddr())
 			goto RESP
 		}
 	}
@@ -158,6 +163,7 @@ func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, 
 	// Dispatch the RPC
 	select {
 	case transport.consumeChan <- rpc:
+		golog.Debugf("[%s] dispatching append entries request to consumer", transport.LocalAddr())
 	case <-transport.shutdownChan:
 		return nil, ErrTransportShutdown
 	}
@@ -166,6 +172,7 @@ func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, 
 RESP:
 	select {
 	case resp := <-respCh:
+		golog.Debugf("[%s] received append entries response from consumer", transport.LocalAddr())
 		// Send the error first
 		if resp.Error != nil {
 			return nil, resp.Error
@@ -179,6 +186,7 @@ RESP:
 }
 
 func (transport *GrpcTransport) handleRequestVoteCommand(ctx context.Context, request *RequestVoteRequest) (*RequestVoteResponse, error) {
+
 	// Create the RPC object
 	respCh := make(chan RPCResponse, 1)
 	rpc := RPC{

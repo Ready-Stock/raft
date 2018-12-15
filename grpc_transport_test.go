@@ -2,6 +2,7 @@ package raft
 
 import (
 	"github.com/gogo/protobuf/proto"
+	"github.com/kataras/golog"
 	"google.golang.org/grpc"
 	"net"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 )
 
 func getGrpcListener() (*grpc.Server, net.Listener) {
+	golog.SetLevel("debug")
 	grpcServer := grpc.NewServer()
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
@@ -134,7 +136,7 @@ func TestGrpcTransport_StartStop(t *testing.T) {
 	trans1.Close()
 }
 
-func GrpcTransport_Heartbeat_FastPath(t *testing.T) {
+func TestGrpcTransport_Heartbeat_FastPath(t *testing.T) {
 	server1, lis1 := getGrpcListener()
 	// Transport 1 is consumer
 	trans1, err := NewGrpcTransport(server1, lis1.Addr().String())
@@ -142,7 +144,12 @@ func GrpcTransport_Heartbeat_FastPath(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer trans1.Close()
-
+	go func() {
+		err := server1.Serve(lis1)
+		if err != nil {
+			panic(err)
+		}
+	}()
 	// Make the RPC request
 	args := AppendEntriesRequest{
 		Term:   10,
@@ -155,17 +162,18 @@ func GrpcTransport_Heartbeat_FastPath(t *testing.T) {
 	}
 
 	invoked := false
-	fastpath := func(rpc RPC) {
+	fastPath := func(rpc RPC) {
 		// Verify the command
-		req := rpc.Command.(*AppendEntriesRequest)
-		if !proto.Equal(req, &args) {
-			t.Fatalf("command mismatch: %#v %#v", *req, args)
+		command := reflect.ValueOf(rpc.Command).Elem()
+		req := *(command.Interface().(*AppendEntriesRequest))
+		if !proto.Equal(&req, &args) {
+			t.Fatalf("command mismatch: %#v %#v", req, args)
 		}
 
 		rpc.Respond(&resp, nil)
 		invoked = true
 	}
-	trans1.SetHeartbeatHandler(fastpath)
+	trans1.SetHeartbeatHandler(fastPath)
 
 	server2, lis2 := getGrpcListener()
 	// Transport 1 is consumer
@@ -181,7 +189,7 @@ func GrpcTransport_Heartbeat_FastPath(t *testing.T) {
 	}
 
 	// Verify the response
-	if !reflect.DeepEqual(resp, out) {
+	if !proto.Equal(&resp, &out) {
 		t.Fatalf("command mismatch: %#v %#v", resp, out)
 	}
 
