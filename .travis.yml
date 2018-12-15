@@ -10,6 +10,8 @@ install:
     - unzip /tmp/protoc.zip -d "$HOME"/protoc
     - mkdir -p "$HOME"/src && ln -s "$HOME"/protoc "$HOME"/src/protobuf
     - go get -u github.com/golang/protobuf/protoc-gen-go
+    - go get -u github.com/gogo/protobuf/proto
+    - go get -u github.com/kataras/golog
     - export PATH=$HOME/protoc/bin:$GOPATH/bin:$PATH
     - make protos
     - make deps
