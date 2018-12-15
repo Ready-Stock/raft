@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"google.golang.org/grpc"
 	"net"
 	"reflect"
@@ -18,10 +19,10 @@ func getGrpcListener() (*grpc.Server, net.Listener) {
 	return grpcServer, lis
 }
 
-func GrpcTransport_CloseStreams(t *testing.T) {
+func TestGrpcTransport_CloseStreams(t *testing.T) {
 	server1, lis1 := getGrpcListener()
 	// Transport 1 is consumer
-	trans1, err := NewGrpcTransport(server1)
+	trans1, err := NewGrpcTransport(server1, lis1.Addr().String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -42,7 +43,7 @@ func GrpcTransport_CloseStreams(t *testing.T) {
 		PrevLogEntry: 100,
 		PrevLogTerm:  4,
 		Entries: []*Log{
-			&Log{
+			{
 				Index: 101,
 				Term:  4,
 				Type:  LogNoop,
@@ -62,20 +63,22 @@ func GrpcTransport_CloseStreams(t *testing.T) {
 			select {
 			case rpc := <-rpcCh:
 				// Verify the command
-				req := rpc.Command.(*AppendEntriesRequest)
-				if !reflect.DeepEqual(req, &args) {
-					t.Fatalf("command mismatch: %#v %#v", *req, args)
-				}
-				rpc.Respond(&resp, nil)
+				command := reflect.ValueOf(rpc.Command).Elem()
+				req := *(command.Interface().(*AppendEntriesRequest))
 
+				if !proto.Equal(&req, &args) {
+					t.Fatalf("command mismatch: %#v %#v", req, args)
+				}
+
+				rpc.Respond(&resp, nil)
 			case <-time.After(200 * time.Millisecond):
 				return
 			}
 		}
 	}()
-	server2, _ := getGrpcListener()
+	server2, lis2 := getGrpcListener()
 	// Transport 2 makes outbound request, 3 conn pool
-	trans2, err := NewGrpcTransport(server2)
+	trans2, err := NewGrpcTransport(server2, lis2.Addr().String())
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -92,9 +95,8 @@ func GrpcTransport_CloseStreams(t *testing.T) {
 			if err := trans2.AppendEntries("id1", ServerAddress(lis1.Addr().String()), &args, &out); err != nil {
 				t.Fatalf("err: %v", err)
 			}
-
 			// Verify the response
-			if !reflect.DeepEqual(resp, out) {
+			if !proto.Equal(&resp, &out) {
 				t.Fatalf("command mismatch: %#v %#v", resp, out)
 			}
 		}
@@ -119,5 +121,72 @@ func GrpcTransport_CloseStreams(t *testing.T) {
 		//         t.Fatalf("Expected no pooled conns after closing streams!")
 		//     }
 		// }
+	}
+}
+
+func TestGrpcTransport_StartStop(t *testing.T) {
+	server1, lis1 := getGrpcListener()
+	// Transport 1 is consumer
+	trans1, err := NewGrpcTransport(server1, lis1.Addr().String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	trans1.Close()
+}
+
+func GrpcTransport_Heartbeat_FastPath(t *testing.T) {
+	server1, lis1 := getGrpcListener()
+	// Transport 1 is consumer
+	trans1, err := NewGrpcTransport(server1, lis1.Addr().String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer trans1.Close()
+
+	// Make the RPC request
+	args := AppendEntriesRequest{
+		Term:   10,
+		Leader: []byte("cartman"),
+	}
+	resp := AppendEntriesResponse{
+		Term:    4,
+		LastLog: 90,
+		Success: true,
+	}
+
+	invoked := false
+	fastpath := func(rpc RPC) {
+		// Verify the command
+		req := rpc.Command.(*AppendEntriesRequest)
+		if !proto.Equal(req, &args) {
+			t.Fatalf("command mismatch: %#v %#v", *req, args)
+		}
+
+		rpc.Respond(&resp, nil)
+		invoked = true
+	}
+	trans1.SetHeartbeatHandler(fastpath)
+
+	server2, lis2 := getGrpcListener()
+	// Transport 1 is consumer
+	trans2, err := NewGrpcTransport(server2, lis2.Addr().String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer trans2.Close()
+
+	var out AppendEntriesResponse
+	if err := trans2.AppendEntries("id1", trans1.LocalAddr(), &args, &out); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify the response
+	if !reflect.DeepEqual(resp, out) {
+		t.Fatalf("command mismatch: %#v %#v", resp, out)
+	}
+
+	// Ensure fast-path is used
+	if !invoked {
+		t.Fatalf("fast-path not used")
 	}
 }
