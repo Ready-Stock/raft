@@ -13,8 +13,8 @@ type lake struct {
 	connectionsLock sync.Mutex
 }
 
-func newLake() *lake {
-	return &lake{
+func newLake() lake {
+	return lake{
 		connections:     map[ServerAddress]*pool{},
 		connectionsLock: sync.Mutex{},
 	}

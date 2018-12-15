@@ -23,6 +23,7 @@ func TestNetworkTransport_CloseStreams(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer trans1.Close()
+	t.Logf("Transport 1 Address: %s", trans1.LocalAddr())
 	rpcCh := trans1.Consumer()
 
 	// Make the RPC request
@@ -70,6 +71,7 @@ func TestNetworkTransport_CloseStreams(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 	defer trans2.Close()
+	t.Logf("Transport 2 Address: %s", trans2.LocalAddr())
 
 	for i := 0; i < 2; i++ {
 		// Create wait group

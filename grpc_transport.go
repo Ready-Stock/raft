@@ -8,6 +8,10 @@ import (
 	"io"
 )
 
+func NewGrpcTransport(server *grpc.Server) (*GrpcTransport, error) {
+	return newGrpcTransport(server)
+}
+
 type WithProtocolVersion interface {
 	GetProtocolVersion() ProtocolVersion
 }
@@ -18,6 +22,20 @@ type GrpcTransport struct {
 	gRPC        *grpc.Server
 	svc         service
 	localAddr   string
+}
+
+func newGrpcTransport(server *grpc.Server) (*GrpcTransport, error) {
+	transport := &GrpcTransport{
+		connPool:    newLake(),
+		consumeChan: make(chan RPC, 0),
+		gRPC:        server,
+	}
+	transport.svc = service{
+		appendEntries:   transport.handleAppendEntriesCommand,
+		requestVote:     transport.handleRequestVoteCommand,
+		installSnapshot: transport.handleInstallSnapshotCommand,
+	}
+	return transport, nil
 }
 
 func (transport *GrpcTransport) Consumer() <-chan RPC {
