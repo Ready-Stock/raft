@@ -215,7 +215,7 @@ func logBytes(i, sz int) []byte {
 // Tests Raft by creating a cluster, growing it to 5 nodes while
 // causing various stressful conditions
 func TestRaft_Integ(t *testing.T) {
-	CheckInteg(t)
+	//CheckInteg(t)
 	conf := DefaultConfig()
 	conf.LocalID = ServerID("first")
 	conf.HeartbeatTimeout = 50 * time.Millisecond

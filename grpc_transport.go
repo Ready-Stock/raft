@@ -1,11 +1,13 @@
 package raft
 
 import (
+	"bytes"
 	"context"
 	"github.com/kataras/golog"
 	"github.com/processout/grpc-go-pool"
 	"google.golang.org/grpc"
 	"io"
+	"io/ioutil"
 	"sync"
 	"time"
 )
@@ -159,8 +161,29 @@ func (transport *GrpcTransport) RequestVote(id ServerID, target ServerAddress, a
 }
 
 func (transport *GrpcTransport) InstallSnapshot(id ServerID, target ServerAddress, args *InstallSnapshotRequest, resp *InstallSnapshotResponse, data io.Reader) error {
+	ctx := context.Background()
 	golog.Debugf("[%s] sending install snapshot to %s", transport.LocalAddr(), target)
-	return nil
+	conn, err := transport.connPool.GetConnection(ctx, target)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	client := NewRaftServiceClient(conn.ClientConn)
+	request := *args
+	bytes, err := ioutil.ReadAll(data)
+	if err != nil {
+		return err
+	}
+	wrapper := &InstallSnapshotRequestWrapper{
+		Request:  &request,
+		Snapshot: bytes,
+	}
+	result, err := client.InstallSnapshot(ctx, wrapper)
+	if err == nil {
+		*resp = *result
+	}
+	return err
 }
 
 func (transport *GrpcTransport) EncodePeer(id ServerID, addr ServerAddress) []byte {
@@ -311,7 +334,37 @@ func (transport *GrpcTransport) handleRequestVoteCommand(ctx context.Context, re
 	}
 }
 
-func (transport *GrpcTransport) handleInstallSnapshotCommand(ctx context.Context, request *InstallSnapshotRequest) (*InstallSnapshotResponse, error) {
+func (transport *GrpcTransport) handleInstallSnapshotCommand(ctx context.Context, request *InstallSnapshotRequestWrapper) (*InstallSnapshotResponse, error) {
 	golog.Infof("[%s] received install snapshot command", transport.LocalAddr())
-	return nil, nil
+	// Create the RPC object
+	respCh := make(chan RPCResponse, 1)
+	rpc := RPC{
+		RespChan: respCh,
+	}
+
+	rpc.Command = request.Request
+
+	rpc.Reader = bytes.NewReader(request.Snapshot)
+
+	// Dispatch the RPC
+	select {
+	case transport.consumeChan <- rpc:
+		golog.Debugf("[%s] dispatching append entries request to consumer", transport.LocalAddr())
+	case <-transport.shutdownChan:
+		return nil, ErrTransportShutdown
+	}
+
+	select {
+	case resp := <-respCh:
+		golog.Debugf("[%s] received append entries response from consumer", transport.LocalAddr())
+		// Send the error first
+		if resp.Error != nil {
+			return nil, resp.Error
+		}
+		rsp := (resp.Response).(*InstallSnapshotResponse)
+		return rsp, resp.Error
+
+	case <-transport.shutdownChan:
+		return nil, ErrTransportShutdown
+	}
 }

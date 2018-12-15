@@ -9,5 +9,5 @@ import "install_snapshot.proto";
 service RaftService {
     rpc appendEntries (AppendEntriesRequest) returns (AppendEntriesResponse) {}
     rpc requestVote (RequestVoteRequest) returns (RequestVoteResponse) {}
-    rpc installSnapshot (InstallSnapshotRequest) returns (InstallSnapshotResponse) {}
+    rpc installSnapshot (InstallSnapshotRequestWrapper) returns (InstallSnapshotResponse) {}
 }

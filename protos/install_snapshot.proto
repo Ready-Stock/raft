@@ -9,6 +9,13 @@ enum SnapshotVersion {
     SnapshotVersionMax = 1;
 }
 
+message InstallSnapshotRequestWrapper {
+    InstallSnapshotRequest Request = 1;
+
+    // With gRPC we want to send the snapshot data along with the message.
+    bytes Snapshot = 2;
+}
+
 message InstallSnapshotRequest {
     // Required field on all requests.
     RPCHeader Header = 1;

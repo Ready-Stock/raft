@@ -1,6 +1,7 @@
 package raft
 
 import (
+	"bytes"
 	"github.com/gogo/protobuf/proto"
 	"github.com/kataras/golog"
 	"google.golang.org/grpc"
@@ -421,4 +422,82 @@ func TestGrpcTransport_AppendEntriesPipeline(t *testing.T) {
 		}
 	}
 	pipeline.Close()
+}
+
+func TestGrpcTransport_InstallSnapshot(t *testing.T) {
+	// Transport 1 is consumer
+	server1, lis1 := getGrpcListener()
+	// Transport 1 is consumer
+	trans1, err := NewGrpcTransport(server1, lis1.Addr().String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer trans1.Close()
+	go func() {
+		err := server1.Serve(lis1)
+		if err != nil {
+			panic(err)
+		}
+	}()
+	rpcCh := trans1.Consumer()
+
+	// Make the RPC request
+	args := InstallSnapshotRequest{
+		Term:         10,
+		Leader:       []byte("kyle"),
+		LastLogIndex: 100,
+		LastLogTerm:  9,
+		Peers:        []byte("blah blah"),
+		Size:         10,
+	}
+	resp := InstallSnapshotResponse{
+		Term:    10,
+		Success: true,
+	}
+
+	// Listen for a request
+	go func() {
+		select {
+		case rpc := <-rpcCh:
+			// Verify the command
+			req := rpc.Command.(*InstallSnapshotRequest)
+			if !proto.Equal(req, &args) {
+				t.Fatalf("command mismatch: %#v %#v", *req, args)
+			}
+
+			// Try to read the bytes
+			buf := make([]byte, 10)
+			rpc.Reader.Read(buf)
+
+			// Compare
+			if bytes.Compare(buf, []byte("0123456789")) != 0 {
+				t.Fatalf("bad buf %v", buf)
+			}
+
+			rpc.Respond(&resp, nil)
+
+		case <-time.After(200 * time.Millisecond):
+			t.Fatalf("timeout")
+		}
+	}()
+
+	server2, lis2 := getGrpcListener()
+	// Transport 2 makes outbound request
+	trans2, err := NewGrpcTransport(server2, lis2.Addr().String())
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	defer trans2.Close()
+	// Create a buffer
+	buf := bytes.NewBuffer([]byte("0123456789"))
+
+	var out InstallSnapshotResponse
+	if err := trans2.InstallSnapshot("id1", trans1.LocalAddr(), &args, &out, buf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Verify the response
+	if !proto.Equal(&resp, &out) {
+		t.Fatalf("command mismatch: %#v %#v", resp, out)
+	}
 }
