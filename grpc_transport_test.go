@@ -9,29 +9,29 @@ import (
 	"time"
 )
 
-func getGrpcListener() (*grpc.Server, string) {
+func getGrpcListener() (*grpc.Server, net.Listener) {
 	grpcServer := grpc.NewServer()
 	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		panic(err)
 	}
-	go func() {
-		err := grpcServer.Serve(lis)
-		if err != nil {
-			panic(err)
-		}
-	}()
-	return grpcServer, lis.Addr().String()
+	return grpcServer, lis
 }
 
 func GrpcTransport_CloseStreams(t *testing.T) {
-	server1, addr1 := getGrpcListener()
+	server1, lis1 := getGrpcListener()
 	// Transport 1 is consumer
 	trans1, err := NewGrpcTransport(server1)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
 	defer trans1.Close()
+	go func() {
+		err := server1.Serve(lis1)
+		if err != nil {
+			panic(err)
+		}
+	}()
 
 	rpcCh := trans1.Consumer()
 
@@ -89,7 +89,7 @@ func GrpcTransport_CloseStreams(t *testing.T) {
 		appendFunc := func() {
 			defer wg.Done()
 			var out AppendEntriesResponse
-			if err := trans2.AppendEntries("id1", ServerAddress(addr1), &args, &out); err != nil {
+			if err := trans2.AppendEntries("id1", ServerAddress(lis1.Addr().String()), &args, &out); err != nil {
 				t.Fatalf("err: %v", err)
 			}
 

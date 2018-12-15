@@ -35,6 +35,7 @@ func newGrpcTransport(server *grpc.Server) (*GrpcTransport, error) {
 		requestVote:     transport.handleRequestVoteCommand,
 		installSnapshot: transport.handleInstallSnapshotCommand,
 	}
+	RegisterRaftServiceServer(server, transport.svc)
 	return transport, nil
 }
 
