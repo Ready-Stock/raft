@@ -1,10 +1,10 @@
 DEPS = $(go list -f '{{range .TestImports}}{{.}} {{end}}' ./...)
 
 test:
-	go test -timeout=60s .
+	go test -v -timeout=60s .
 
 integ: test
-	INTEG_TESTS=yes go test -timeout=25s -run=Integ .
+	INTEG_TESTS=yes go test -v -timeout=25s -run=Integ .
 
 fuzz:
 	go test -timeout=300s ./fuzzy
