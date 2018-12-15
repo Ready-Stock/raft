@@ -3,10 +3,76 @@ package raft
 import (
 	"context"
 	"github.com/kataras/golog"
+	"github.com/processout/grpc-go-pool"
 	"google.golang.org/grpc"
 	"io"
 	"sync"
+	"time"
 )
+
+type grpcPipeline struct {
+	conn         *grpcpool.ClientConn
+	trans        *GrpcTransport
+	doneCh       chan AppendFuture
+	inProgressCh chan *appendFuture
+	shutdown     bool
+	shutdownCh   chan struct{}
+	shutdownLock sync.Mutex
+}
+
+func newGrpcPipeline(transport *GrpcTransport, conn *grpcpool.ClientConn) *grpcPipeline {
+	p := &grpcPipeline{
+		conn:         conn,
+		trans:        transport,
+		doneCh:       make(chan AppendFuture, rpcMaxPipeline),
+		inProgressCh: make(chan *appendFuture, rpcMaxPipeline),
+		shutdownCh:   make(chan struct{}),
+	}
+	return p
+}
+
+func (pipe *grpcPipeline) AppendEntries(args *AppendEntriesRequest, resp *AppendEntriesResponse) (AppendFuture, error) {
+	ctx := context.Background()
+	// Create a new future
+	future := &appendFuture{
+		start: time.Now(),
+		args:  args,
+		resp:  resp,
+	}
+	future.init()
+	go func() {
+		golog.Debugf("[%s] sending append entries on pipeline", pipe.trans.LocalAddr())
+		client := NewRaftServiceClient(pipe.conn.ClientConn)
+		result, err := client.AppendEntries(ctx, args)
+		if err != nil {
+			future.respond(err)
+		}
+		future.resp = result
+		pipe.doneCh <- future
+	}()
+	return future, nil
+}
+
+// Consumer returns a channel that can be used to consume complete futures.
+func (pipe *grpcPipeline) Consumer() <-chan AppendFuture {
+	return pipe.doneCh
+}
+
+// Closed is used to shutdown the pipeline connection.
+func (pipe *grpcPipeline) Close() error {
+	pipe.shutdownLock.Lock()
+	defer pipe.shutdownLock.Unlock()
+	if pipe.shutdown {
+		return nil
+	}
+
+	// Release the connection
+	pipe.conn.Close()
+
+	pipe.shutdown = true
+	close(pipe.shutdownCh)
+	return nil
+}
 
 func NewGrpcTransport(server *grpc.Server, localAddr string) (*GrpcTransport, error) {
 	return newGrpcTransport(server, localAddr)
@@ -58,8 +124,14 @@ func (transport *GrpcTransport) LocalAddr() ServerAddress {
 }
 
 func (transport *GrpcTransport) AppendEntriesPipeline(id ServerID, target ServerAddress) (AppendPipeline, error) {
-
-	return nil, nil
+	// Get a connection
+	ctx := context.Background()
+	conn, err := transport.connPool.GetConnection(ctx, target)
+	if err != nil {
+		return nil, err
+	}
+	// Create the pipeline
+	return newGrpcPipeline(transport, conn), nil
 }
 
 func (transport *GrpcTransport) AppendEntries(id ServerID, target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
@@ -72,6 +144,7 @@ func (transport *GrpcTransport) AppendEntries(id ServerID, target ServerAddress,
 }
 
 func (transport *GrpcTransport) RequestVote(id ServerID, target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error {
+	golog.Debugf("[%s] sending vote request to %s", transport.LocalAddr(), target)
 	result, err := transport.executeTransportClient(context.Background(), id, target, func(ctx context.Context, client RaftServiceClient) (result interface{}, err error) {
 		return client.RequestVote(ctx, args)
 	})
@@ -139,7 +212,7 @@ func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, 
 	// Decode the command
 	isHeartbeat := false
 
-	rpc.Command = &request
+	rpc.Command = *request
 
 	// Check if this is a heartbeat
 	if request.Term != 0 && request.Leader != nil &&
@@ -186,7 +259,7 @@ RESP:
 }
 
 func (transport *GrpcTransport) handleRequestVoteCommand(ctx context.Context, request *RequestVoteRequest) (*RequestVoteResponse, error) {
-
+	golog.Infof("[%s] received request vote command", transport.LocalAddr())
 	// Create the RPC object
 	respCh := make(chan RPCResponse, 1)
 	rpc := RPC{
@@ -194,16 +267,18 @@ func (transport *GrpcTransport) handleRequestVoteCommand(ctx context.Context, re
 	}
 
 	// Decode the command
-	rpc.Command = request
+	rpc.Command = *request
 	// Dispatch the RPC
 	select {
 	case transport.consumeChan <- rpc:
+		golog.Debugf("[%s] dispatching request vote to consumer", transport.LocalAddr())
 	case <-transport.shutdownChan:
 		return nil, ErrTransportShutdown
 	}
 
 	select {
 	case resp := <-respCh:
+		golog.Debugf("[%s] received vote response from consumer", transport.LocalAddr())
 		// Send the error first
 		if resp.Error != nil {
 			return nil, resp.Error

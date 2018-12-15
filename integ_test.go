@@ -12,9 +12,9 @@ import (
 
 // CheckInteg will skip a test if integration testing is not enabled.
 func CheckInteg(t *testing.T) {
-	if !IsInteg() {
-		t.SkipNow()
-	}
+	// if !IsInteg() {
+	// 	t.SkipNow()
+	// }
 }
 
 // IsInteg returns a boolean telling you if we're in integ testing mode.
