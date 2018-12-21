@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	"github.com/kataras/golog"
 	"io"
 	"io/ioutil"
 	"time"
@@ -967,7 +968,8 @@ func (r *Raft) processRPC(rpc RPC) {
 	case *InstallSnapshotRequest:
 		r.installSnapshot(rpc, cmd)
 	default:
-		r.logger.Printf("[ERR] raft: Got unexpected command: %#v", rpc.Command)
+		golog.Errorf("raft: Got unexpected command: %#v", rpc.Command)
+		// r.logger.Printf("[ERR] raft: Got unexpected command: %#v", rpc.Command)
 		rpc.Respond(nil, fmt.Errorf("unexpected command"))
 	}
 }

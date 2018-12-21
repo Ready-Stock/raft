@@ -197,7 +197,7 @@ ERR:
 
 // Tests Raft by creating a cluster, growing it to 5 nodes while
 // causing various stressful conditions
-func GrpcRaft_Integ(t *testing.T) {
+func TestGrpcRaft_Integ(t *testing.T) {
 	conf := DefaultConfig()
 	conf.LocalID = ServerID("first")
 	conf.HeartbeatTimeout = 50 * time.Millisecond
