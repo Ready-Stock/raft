@@ -3,8 +3,8 @@ package raft
 import (
 	"bytes"
 	"context"
-	"github.com/kataras/golog"
 	"github.com/processout/grpc-go-pool"
+	"github.com/readystock/golog"
 	"google.golang.org/grpc"
 	"io"
 	"io/ioutil"
@@ -217,7 +217,7 @@ func (transport *GrpcTransport) getProviderAddressOrFallback(id ServerID, target
 	if transport.serverAddressProvider != nil {
 		serverAddressOverride, err := transport.serverAddressProvider.ServerAddr(id)
 		if err != nil {
-			golog.Warnf("[WARN] raft: Unable to get address for server id %v, using fallback address %v: %v", id, target, err)
+			golog.Warnf("unable to get address for server id %v, using fallback address %v: %v", id, target, err)
 		} else {
 			return serverAddressOverride
 		}

@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/readystock/golog"
 	"hash"
 	"hash/crc64"
 	"io"
@@ -150,11 +151,13 @@ func (f *FileSnapshotStore) Create(version SnapshotVersion, index, term uint64,
 	// Create a new path
 	name := snapshotName(term, index)
 	path := filepath.Join(f.path, name+tmpSuffix)
-	f.logger.Printf("[INFO] snapshot: Creating new snapshot at %s", path)
+	golog.Infof("creating new snapshot at %s", path)
+	// f.logger.Printf("[INFO] snapshot: Creating new snapshot at %s", path)
 
 	// Make the directory
 	if err := os.MkdirAll(path, 0755); err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to make snapshot directory: %v", err)
+		golog.Errorf("failed to make snapshot directory: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to make snapshot directory: %v", err)
 		return nil, err
 	}
 
@@ -180,7 +183,8 @@ func (f *FileSnapshotStore) Create(version SnapshotVersion, index, term uint64,
 
 	// Write out the meta data
 	if err := sink.writeMeta(); err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to write metadata: %v", err)
+		golog.Errorf("failed to write metadata: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to write metadata: %v", err)
 		return nil, err
 	}
 
@@ -188,7 +192,8 @@ func (f *FileSnapshotStore) Create(version SnapshotVersion, index, term uint64,
 	statePath := filepath.Join(path, stateFilePath)
 	fh, err := os.Create(statePath)
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to create state file: %v", err)
+		golog.Errorf("failed to create state file: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to create state file: %v", err)
 		return nil, err
 	}
 	sink.stateFile = fh
@@ -209,7 +214,8 @@ func (f *FileSnapshotStore) List() ([]*SnapshotMeta, error) {
 	// Get the eligible snapshots
 	snapshots, err := f.getSnapshots()
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to get snapshots: %v", err)
+		golog.Errorf("failed to get snapshots: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to get snapshots: %v", err)
 		return nil, err
 	}
 
@@ -228,7 +234,8 @@ func (f *FileSnapshotStore) getSnapshots() ([]*fileSnapshotMeta, error) {
 	// Get the eligible snapshots
 	snapshots, err := ioutil.ReadDir(f.path)
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to scan snapshot dir: %v", err)
+		golog.Errorf("failed to scan snapshot dir: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to scan snapshot dir: %v", err)
 		return nil, err
 	}
 
@@ -243,20 +250,23 @@ func (f *FileSnapshotStore) getSnapshots() ([]*fileSnapshotMeta, error) {
 		// Ignore any temporary snapshots
 		dirName := snap.Name()
 		if strings.HasSuffix(dirName, tmpSuffix) {
-			f.logger.Printf("[WARN] snapshot: Found temporary snapshot: %v", dirName)
+			golog.Warnf("found temporary snapshot: %v", dirName)
+			// f.logger.Printf("[WARN] snapshot: Found temporary snapshot: %v", dirName)
 			continue
 		}
 
 		// Try to read the meta data
 		meta, err := f.readMeta(dirName)
 		if err != nil {
-			f.logger.Printf("[WARN] snapshot: Failed to read metadata for %v: %v", dirName, err)
+			golog.Warnf("failed to read metadata for %v: %v", dirName, err)
+			// f.logger.Printf("[WARN] snapshot: Failed to read metadata for %v: %v", dirName, err)
 			continue
 		}
 
 		// Make sure we can understand this version.
 		if meta.Version < SnapshotVersion_SnapshotVersionMin || meta.Version > SnapshotVersion_SnapshotVersionMax {
-			f.logger.Printf("[WARN] snapshot: Snapshot version for %v not supported: %d", dirName, meta.Version)
+			golog.Warnf("snapshot version for %v not supported: %d", dirName, meta.Version)
+			// f.logger.Printf("[WARN] snapshot: Snapshot version for %v not supported: %d", dirName, meta.Version)
 			continue
 		}
 
@@ -297,7 +307,8 @@ func (f *FileSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, error
 	// Get the metadata
 	meta, err := f.readMeta(id)
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to get meta data to open snapshot: %v", err)
+		golog.Errorf("failed to get meta data to open snapshot: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to get meta data to open snapshot: %v", err)
 		return nil, nil, err
 	}
 
@@ -305,7 +316,8 @@ func (f *FileSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, error
 	statePath := filepath.Join(f.path, id, stateFilePath)
 	fh, err := os.Open(statePath)
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to open state file: %v", err)
+		golog.Errorf("failed to open state file: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to open state file: %v", err)
 		return nil, nil, err
 	}
 
@@ -315,7 +327,8 @@ func (f *FileSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, error
 	// Compute the hash
 	_, err = io.Copy(stateHash, fh)
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to read state file: %v", err)
+		golog.Errorf("failed to read state file: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to read state file: %v", err)
 		fh.Close()
 		return nil, nil, err
 	}
@@ -323,15 +336,17 @@ func (f *FileSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, error
 	// Verify the hash
 	computed := stateHash.Sum(nil)
 	if bytes.Compare(meta.CRC, computed) != 0 {
-		f.logger.Printf("[ERR] snapshot: CRC checksum failed (stored: %v computed: %v)",
-			meta.CRC, computed)
+		golog.Errorf("CRC checksum failed (stored: %v computed: %v)", meta.CRC, computed)
+		// f.logger.Printf("[ERR] snapshot: CRC checksum failed (stored: %v computed: %v)",
+		// 	meta.CRC, computed)
 		fh.Close()
 		return nil, nil, fmt.Errorf("CRC mismatch")
 	}
 
 	// Seek to the start
 	if _, err := fh.Seek(0, 0); err != nil {
-		f.logger.Printf("[ERR] snapshot: State file seek failed: %v", err)
+		golog.Errorf("state file seek failed: %v", err)
+		// f.logger.Printf("[ERR] snapshot: State file seek failed: %v", err)
 		fh.Close()
 		return nil, nil, err
 	}
@@ -349,15 +364,18 @@ func (f *FileSnapshotStore) Open(id string) (*SnapshotMeta, io.ReadCloser, error
 func (f *FileSnapshotStore) ReapSnapshots() error {
 	snapshots, err := f.getSnapshots()
 	if err != nil {
-		f.logger.Printf("[ERR] snapshot: Failed to get snapshots: %v", err)
+		golog.Errorf("failed to get snapshots: %v", err)
+		// f.logger.Printf("[ERR] snapshot: Failed to get snapshots: %v", err)
 		return err
 	}
 
 	for i := f.retain; i < len(snapshots); i++ {
 		path := filepath.Join(f.path, snapshots[i].ID)
-		f.logger.Printf("[INFO] snapshot: reaping snapshot %v", path)
+		golog.Infof("reaping snapshot %v", path)
+		// f.logger.Printf("[INFO] snapshot: reaping snapshot %v", path)
 		if err := os.RemoveAll(path); err != nil {
-			f.logger.Printf("[ERR] snapshot: Failed to reap snapshot %v: %v", path, err)
+			golog.Errorf("failed to reap snapshot %v: %v", path, err)
+			// f.logger.Printf("[ERR] snapshot: Failed to reap snapshot %v: %v", path, err)
 			return err
 		}
 	}
@@ -386,9 +404,11 @@ func (s *FileSnapshotSink) Close() error {
 
 	// Close the open handles
 	if err := s.finalize(); err != nil {
-		s.logger.Printf("[ERR] snapshot: Failed to finalize snapshot: %v", err)
+		golog.Errorf("failed to finalize snapshot: %v", err)
+		// s.logger.Printf("[ERR] snapshot: Failed to finalize snapshot: %v", err)
 		if delErr := os.RemoveAll(s.dir); delErr != nil {
-			s.logger.Printf("[ERR] snapshot: Failed to delete temporary snapshot directory at path %v: %v", s.dir, delErr)
+			golog.Errorf("failed to delete temporary snapshot directory at path %v: %v", s.dir, delErr)
+			// s.logger.Printf("[ERR] snapshot: Failed to delete temporary snapshot directory at path %v: %v", s.dir, delErr)
 			return delErr
 		}
 		return err
@@ -396,14 +416,16 @@ func (s *FileSnapshotSink) Close() error {
 
 	// Write out the meta data
 	if err := s.writeMeta(); err != nil {
-		s.logger.Printf("[ERR] snapshot: Failed to write metadata: %v", err)
+		golog.Errorf("failed to write metadata: %v", err)
+		// s.logger.Printf("[ERR] snapshot: Failed to write metadata: %v", err)
 		return err
 	}
 
 	// Move the directory into place
 	newPath := strings.TrimSuffix(s.dir, tmpSuffix)
 	if err := os.Rename(s.dir, newPath); err != nil {
-		s.logger.Printf("[ERR] snapshot: Failed to move snapshot into place: %v", err)
+		golog.Errorf("failed to move snapshot into place: %v", err)
+		// s.logger.Printf("[ERR] snapshot: Failed to move snapshot into place: %v", err)
 		return err
 	}
 
@@ -411,12 +433,14 @@ func (s *FileSnapshotSink) Close() error {
 		parentFH, err := os.Open(s.parentDir)
 		defer parentFH.Close()
 		if err != nil {
-			s.logger.Printf("[ERR] snapshot: Failed to open snapshot parent directory %v, error: %v", s.parentDir, err)
+			golog.Errorf("failed to open snapshot parent directory %v, error: %v", s.parentDir, err)
+			// s.logger.Printf("[ERR] snapshot: Failed to open snapshot parent directory %v, error: %v", s.parentDir, err)
 			return err
 		}
 
 		if err = parentFH.Sync(); err != nil {
-			s.logger.Printf("[ERR] snapshot: Failed syncing parent directory %v, error: %v", s.parentDir, err)
+			golog.Errorf("failed syncing parent directory %v, error: %v", s.parentDir, err)
+			// s.logger.Printf("[ERR] snapshot: Failed syncing parent directory %v, error: %v", s.parentDir, err)
 			return err
 		}
 	}
@@ -439,7 +463,8 @@ func (s *FileSnapshotSink) Cancel() error {
 
 	// Close the open handles
 	if err := s.finalize(); err != nil {
-		s.logger.Printf("[ERR] snapshot: Failed to finalize snapshot: %v", err)
+		golog.Errorf("failed to finalize snapshot: %v", err)
+		// s.logger.Printf("[ERR] snapshot: Failed to finalize snapshot: %v", err)
 		return err
 	}
 
