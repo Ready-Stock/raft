@@ -198,6 +198,7 @@ ERR:
 // Tests Raft by creating a cluster, growing it to 5 nodes while
 // causing various stressful conditions
 func TestGrpcRaft_Integ(t *testing.T) {
+	t.Skip()
 	conf := DefaultConfig()
 	conf.LocalID = ServerID("first")
 	conf.HeartbeatTimeout = 50 * time.Millisecond
