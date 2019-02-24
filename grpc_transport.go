@@ -139,7 +139,6 @@ func (transport *GrpcTransport) AppendEntriesPipeline(id ServerID, target Server
 }
 
 func (transport *GrpcTransport) AppendEntries(id ServerID, target ServerAddress, args *AppendEntriesRequest, resp *AppendEntriesResponse) error {
-	// golog.Debugf("[%s] sending append entries request to %s", transport.LocalAddr(), target)
 	result, err := transport.executeTransportClient(context.Background(), id, target, func(ctx context.Context, client RaftServiceClient) (result interface{}, err error) {
 		return client.AppendEntries(ctx, args)
 	})
@@ -150,7 +149,6 @@ func (transport *GrpcTransport) AppendEntries(id ServerID, target ServerAddress,
 }
 
 func (transport *GrpcTransport) RequestVote(id ServerID, target ServerAddress, args *RequestVoteRequest, resp *RequestVoteResponse) error {
-	golog.Debugf("[%s] sending vote request to %s", transport.LocalAddr(), target)
 	result, err := transport.executeTransportClient(context.Background(), id, target, func(ctx context.Context, client RaftServiceClient) (result interface{}, err error) {
 		return client.RequestVote(ctx, args)
 	})
@@ -245,7 +243,6 @@ func (transport *GrpcTransport) listen() {
 }
 
 func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, request *AppendEntriesRequest) (*AppendEntriesResponse, error) {
-	// golog.Infof("[%s] received append entries command", transport.LocalAddr())
 	// Create the RPC object
 	respCh := make(chan RPCResponse, 1)
 	rpc := RPC{
@@ -288,7 +285,6 @@ func (transport *GrpcTransport) handleAppendEntriesCommand(ctx context.Context, 
 RESP:
 	select {
 	case resp := <-respCh:
-		// golog.Debugf("[%s] received append entries response from consumer", transport.LocalAddr())
 		// Send the error first
 		if resp.Error != nil {
 			return nil, resp.Error

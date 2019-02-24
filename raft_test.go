@@ -3,6 +3,7 @@ package raft
 import (
 	"bytes"
 	"fmt"
+	"github.com/readystock/golog"
 	"io"
 	"io/ioutil"
 	"log"
@@ -172,7 +173,7 @@ func (c *cluster) Failf(format string, args ...interface{}) {
 // other goroutines created during the test. Calling FailNowf does not stop
 // those other goroutines.
 func (c *cluster) FailNowf(format string, args ...interface{}) {
-	c.logger.Printf(format, args...)
+	golog.Errorf(format, args...)
 	c.t.FailNow()
 }
 
@@ -468,9 +469,9 @@ func (c *cluster) EnsureLeader(t *testing.T, expect ServerAddress) {
 				leader = "[none]"
 			}
 			if expect == "" {
-				c.logger.Printf("[ERR] Peer %s sees leader %v expected [none]", r, leader)
+				golog.Errorf("peer %s sees leader %v expected [none]", r, leader)
 			} else {
-				c.logger.Printf("[ERR] Peer %s sees leader %v expected %v", r, leader, expect)
+				golog.Errorf("peer %s sees leader %v expected %v", r, leader, expect)
 			}
 			fail = true
 		}

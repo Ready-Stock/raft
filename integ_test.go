@@ -215,6 +215,7 @@ func logBytes(i, sz int) []byte {
 // Tests Raft by creating a cluster, growing it to 5 nodes while
 // causing various stressful conditions
 func TestRaft_Integ(t *testing.T) {
+	t.Skip()
 	//CheckInteg(t)
 	conf := DefaultConfig()
 	conf.LocalID = ServerID("first")
